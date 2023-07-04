@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def objective_function(residual_matrix, stretching_factor_matrix, smoothness, sparsity_term, component_matrix,
+def objective_function(residual_matrix, stretching_factor_matrix, smoothness, smoothness_term, component_matrix,
                        sparsity):
     """Defines the objective function of the algorithm and returns its value
 
@@ -16,11 +16,14 @@ def objective_function(residual_matrix, stretching_factor_matrix, smoothness, sp
       The matrix containing the stretching factors of the calculated component signal. Has dimensions
 
     smoothness: float
-      The coefficient of the
+      The coefficient of the smoothness term which
 
 
-    sparsity_term
-    component_matrix
+    smoothness_term: 2d array
+      The term that ensures that smooth changes in the component signals are favored.
+
+    component_matrix:
+
     sparsity
 
     Returns
@@ -28,4 +31,4 @@ def objective_function(residual_matrix, stretching_factor_matrix, smoothness, sp
 
     """
     return .5 * np.linalg.norm(residual_matrix, 'fro') ** 2 + .5 * smoothness * np.linalg.norm(
-        sparsity_term @ stretching_factor_matrix.T, 'fro') ** 2 + sparsity * np.sum(np.sqrt(component_matrix))
+        smoothness_term @ stretching_factor_matrix.T, 'fro') ** 2 + sparsity * np.sum(np.sqrt(component_matrix))
