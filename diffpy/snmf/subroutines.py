@@ -7,9 +7,18 @@ def objective_function(residual_matrix, stretching_factor_matrix, smoothness, sp
 
     Parameters
     ----------
-    residual_matrix
-    stretching_factor_matrix
-    smoothness
+    residual_matrix: 2d array like
+      The matrix where each column is the difference between an experimental PDF/XRD pattern and a calculated PDF/XRD
+      pattern at each grid point. Has dimensions R x M where R is the length of each pattern and M is the amount of
+      patterns.
+
+    stretching_factor_matrix: 2d array like
+      The matrix containing the stretching factors of the calculated component signal. Has dimensions
+
+    smoothness: float
+      The coefficient of the
+
+
     sparsity_term
     component_matrix
     sparsity
