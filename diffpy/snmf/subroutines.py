@@ -18,21 +18,25 @@ def objective_function(residual_matrix, stretching_factor_matrix, smoothness, sm
       the amount of components and M is the number of experimental PDF/XRD patterns.
 
     smoothness: float
-      The coefficient of the smoothness term which determines
-
+      The coefficient of the smoothness term which determines the intensity of the smoothness term and its behavior.
+      It is not very sensitive and is usually adjusted by multiplying it by ten.
 
     smoothness_term: 2d array
-      The term that ensures that smooth changes in the component signals are favored.
+      The regularization term that ensures that smooth changes in the component stretching signals are favored.
+      Has dimensions (M-2) x M where M is the amount of experimentally obtained PDF/XRD patterns, the moment amount.
 
     component_matrix: 2d array
-      The matrix containing the calculated component signals of the experimental PDF/XRD patterns. Has dimesions R x K
+      The matrix containing the calculated component signals of the experimental PDF/XRD patterns. Has dimensions R x K
       where R is the signal length and K is the number of component signals.
 
     sparsity: float
-      The parameter
+      The parameter determining the intensity of the sparsity regularization term which enables the algorithm to
+      exploit the sparse nature of XRD data. It is usually adjusted by doubling.
 
     Returns
     -------
+    float
+      The value of the objective function.
 
     """
     return .5 * np.linalg.norm(residual_matrix, 'fro') ** 2 + .5 * smoothness * np.linalg.norm(
