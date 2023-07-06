@@ -47,10 +47,13 @@ def objective_function(residual_matrix, stretching_factor_matrix, smoothness, sm
 
 
 def get_stretched_component(stretching_factor, component, grid_vector):
-    spline = scipy.interpolate.UnivariateSpline(grid_vector, component, k=2)
+    component = np.asarray(component)
+    grid_vector = np.asarray(grid_vector)
+    spline = scipy.interpolate.UnivariateSpline(grid_vector, component, k=2, ext=1)
     stretched_component = spline.__call__(grid_vector / stretching_factor)
     stretched_component_first_derivative = spline.__call__(grid_vector / stretching_factor, nu=1)
     stretched_component_second_derivative = spline.__call__(grid_vector / stretching_factor, nu=2)
+    return stretched_component, stretched_component_first_derivative,stretched_component_second_derivative
 
 
 def update_weights_matrix(component_amount, signal_length, stretching_factor_matrix, component_matrix, data_input,
