@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from diffpy.snmf.subroutines import objective_function, get_stretched_component
 
 to = [
@@ -25,8 +26,10 @@ def test_objective_function(to):
 
 
 tgsc = [
-    ([.2220, [1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8]],
-     ([1, 5.5045, 0, 0, 0, 0, 0, 0, 0], [0, -20.2906, 0, 0, 0, 0, 0, 0, 0], [182.7978, 0, 0, 0, 0, 0, 0, 0, 0]))
+    ([.2220, [1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8]], [1, 5.504504504504505, 0, 0, 0, 0, 0, 0, 0]),
+    ([1.2, [1.5, 2.2, 3.5, 4.2, 5.5, 6.2, 7.5, 8.2, 9.5], [0, 1, 2, 3, 4, 5, 6, 7, 8]],
+     [1.5, 2.083333333333333, 3.066666666666667, 3.85, 4.633333333333334, 5.616666666666667, 6.200000000000000,
+      7.283333333333334, 7.966666666666667]),
 ]
 
 
@@ -34,5 +37,4 @@ tgsc = [
 def test_get_stretched_components(tgsc):
     actual = get_stretched_component(tgsc[0][0], tgsc[0][1], tgsc[0][2])
     expected = tgsc[1]
-    print(actual)
-    assert (actual == expected).all()
+    np.testing.assert_allclose(actual, expected, rtol=1e-14)
