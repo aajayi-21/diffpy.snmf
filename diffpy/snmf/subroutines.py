@@ -49,15 +49,31 @@ def objective_function(residual_matrix, stretching_factor_matrix, smoothness, sm
         smoothness_term @ stretching_factor_matrix.T, 'fro') ** 2 + sparsity * np.sum(np.sqrt(component_matrix))
 
 
-def get_stretched_component(stretching_factor, component, grid_vector):
+def get_stretched_component(stretching_factor, component, signal_length):
+    """Applies a stretching factor to a component signal.
+    Computes a stretched signal and reinterpolates it onto the original grid of points. Uses a normalized grid of evenly
+    spaced integers counting from 0 to signal_length (exclusive) to approximate values in between grid nodes. Once this
+    grid is stretched, values at grid nodes past the unstretched signal's domain are set to zero. Returns the
+    approximate values of x(r/a) from x(r) where x is a component signal.
+    Parameters
+    ----------
+    stretching_factor: float
+      The stretching factor of a component signal at a particular moment.
+    component: 1d array like
+      The calculated component signal without stretching or weighting. Has length N, the length of the signal.
+    signal_length: int
+      The length of the component signal.
+    Returns
+    -------
+    1d array of floats
+      The calculated component signal with stretching factors applied. Has length N, the length of the unstretched
+      component signal.
+    """
     component = np.asarray(component)
-    grid_vector = np.asarray(grid_vector)
-    spline = scipy.interpolate.UnivariateSpline(grid_vector, component, k=2, ext=1)
-    stretched_grid_vector = grid_vector / stretching_factor
-
-    stretched_component = spline.__call__(stretched_grid_vector)
-    # stretched_component_first_derivative = spline.__call__(stretched_grid_vector, nu=1, ext=1) / stretching_factor
-    # stretched_component_second_derivative = (spline.__call__(stretched_grid_vector, nu=2, ext=1) / stretching_factor**2) - (spline.__call__(stretched_grid_vector, nu=1) / stretching_factor**3)
+    normalized_grid = np.arange(signal_length)
+    spline = scipy.interpolate.InterpolatedUnivariateSpline(normalized_grid, component, k=1, ext=1)
+    stretched_grid = normalized_grid / stretching_factor
+    stretched_component = spline.__call__(stretched_grid)
     return stretched_component
 
 
