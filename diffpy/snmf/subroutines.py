@@ -1,4 +1,6 @@
 import numpy as np
+import scipy
+from diffpy.snmf.optimizers import get_weights
 
 
 # import scipy.interpolate
@@ -49,3 +51,57 @@ def objective_function(residual_matrix, stretching_factor_matrix, smoothness, sm
     component_matrix = np.asarray(component_matrix)
     return .5 * np.linalg.norm(residual_matrix, 'fro') ** 2 + .5 * smoothness * np.linalg.norm(
         smoothness_term @ stretching_factor_matrix.T, 'fro') ** 2 + sparsity * np.sum(np.sqrt(component_matrix))
+
+
+def get_stretched_component(stretching_factor, component, signal_length):
+    """Applies a stretching factor to a component signal.
+    Computes a stretched signal and reinterpolates it onto the original grid of points. Uses a normalized grid of evenly
+    spaced integers counting from 0 to signal_length (exclusive) to approximate values in between grid nodes. Once this
+    grid is stretched, values at grid nodes past the unstretched signal's domain are set to zero. Returns the
+    approximate values of x(r/a) from x(r) where x is a component signal.
+    Parameters
+    ----------
+    stretching_factor: float
+      The stretching factor of a component signal at a particular moment.
+    component: 1d array like
+      The calculated component signal without stretching or weighting. Has length N, the length of the signal.
+    signal_length: int
+      The length of the component signal.
+    Returns
+    -------
+    1d array of floats
+      The calculated component signal with stretching factors applied. Has length N, the length of the unstretched
+      component signal.
+    """
+    component = np.asarray(component)
+    normalized_grid = np.arange(signal_length)
+    spline = scipy.interpolate.InterpolatedUnivariateSpline(normalized_grid, component, k=1, ext=1)
+    stretched_grid = normalized_grid / stretching_factor
+    stretched_component = spline.__call__(stretched_grid)
+    return stretched_component
+
+
+def update_weights_matrix(component_amount, signal_length, stretching_factor_matrix, component_matrix, data_input,
+                          moment_amount, weights_matrix):
+    weight = np.zeros(component_amount)
+    for i in range(moment_amount):
+        stretched_components = np.zeros(signal_length, component_amount)
+        for n in range(component_amount):
+            stretched_components[:, n] = get_stretched_component(stretching_factor_matrix[n, i], component_matrix[:, n])
+
+        weight = get_weights(stretched_components[0:signal_length, :].T @ stretched_components[0:signal_length, :])
+        weights_matrix[:, n] = weight
+    return weights_matrix
+
+
+def get_residual_matrix(component_matrix, weights_matrix, stretching_matrix, data_input, moment_amount,
+                        component_amount):
+    residual_matrx = -1 * data_input
+    for m in range(moment_amount):
+        residual = residual_matrx[:, m]
+        for k in range(component_amount):
+            residual = residual + weights_matrix[k, m] * get_stretched_component(stretching_matrix[k, m],
+                                                                                 component_matrix[:, k])
+        residual_matrx[:, m] = residual
+    return residual_matrx
+

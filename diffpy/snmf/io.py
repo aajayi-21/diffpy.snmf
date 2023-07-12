@@ -2,6 +2,8 @@ import numpy as np
 import scipy.sparse
 from pathlib import Path
 from diffpy.utils.parsers.loaddata import loadData
+import argparse
+import matplotlib as plt
 
 
 def initialize_variables(data_input, component_amount, data_type, sparsity=1, smoothness=1e18):
@@ -114,3 +116,22 @@ def load_input_signals(file_path=None):
     grid_vector = np.unique(grid_array, axis=1)
     values_array = np.column_stack(values_list)
     return grid_vector, values_array
+
+
+def parser():
+    parser = argparse.ArgumentParser(
+        prog="SNMF",
+        description="Stretched Nonnegative Matrix Factorzation"
+
+    )
+
+    parser.add_argument('type',choices=['xrd','pdf'],help='enter xrd or pdf to specify the type of your data')
+    parser.add_argument('component_amount',type=int,help='the number of components to split the data into',)
+    parser.add_argument('-d','--directory',default=None,)
+    
+    args =parser.parse_args()
+    print(args)
+    return vars(args)
+
+def drawfig():
+    weight_plot = plt.
