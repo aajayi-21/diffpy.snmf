@@ -86,19 +86,27 @@ def update_weights_matrix(component_amount, signal_length, stretching_factor_mat
                           moment_amount, weights_matrix, method):
     """Updates the weights matrix.
 
+    Updates the stretched component signal weights in 'weights_matrix.'
+
     Parameters
     ----------
     component_amount: int
+      The number of component signals the user would like to determine from the experimental data.
 
     signal_length: int
+      The length of the experimental signal patterns.
 
     stretching_factor_matrix: 2d array like
+      The matrix containing the stretching factors of the calculated component signals.
 
     component_matrix: 2d array like
+      The matrix containing the unstretched calculated component signals.
 
     data_input: 2d array like
+      The experimental series of PDF/XRD patterns.
 
     moment_amount: int
+
 
     weights_matrix: 2d array like
 
@@ -129,25 +137,39 @@ def update_weights_matrix(component_amount, signal_length, stretching_factor_mat
 
 def get_residual_matrix(component_matrix, weights_matrix, stretching_matrix, data_input, moment_amount,
                         component_amount):
-    """Obtains the residual
+    """Obtains the residual matrix between the experimental data and calculated data
+
+    Calculates the difference between the experimental data and the reconstructed experimental data created from the
+    calculated components, weights, and stretching factors.
 
     Parameters
     ----------
     component_matrix: 2d array like
+      The matrix containing the calculated component signals. Has dimensions N x K where N is the length of the signal
+      and K is the number of calculated component signals.
 
     weights_matrix: 2d array like
+      The matrix containing the calculated weights of the stretched component signals. Has dimensions K x M where K is
+      the number of components and M is the number of moments or experimental PDF/XRD patterns.
 
     stretching_matrix: 2d array like
+      The matrix containing the calculated stretching factors of the calculated component signals. Has dimensions K x M
+      where K is the number of components and M is the number of moments or experimental PDF/XRD patterns.
 
     data_input: 2d array like
+      The matrix containing the experimental PDF/XRD data. Has dimensions N x M where N is the length of the signals and
+      M is the number of signal patterns.
 
     moment_amount: int
+      The number of PDF/XRD patterns.
 
     component_amount: int
+      The number of component signals that user would like to experimental data.
 
 
     Returns
     -------
+    2d array like
 
     """
     residual_matrx = -1 * data_input
