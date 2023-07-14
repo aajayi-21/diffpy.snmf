@@ -76,11 +76,7 @@ def get_stretched_component(stretching_factor, component, signal_length):
     """
     component = np.asarray(component)
     normalized_grid = np.arange(signal_length)
-    spline = scipy.interpolate.InterpolatedUnivariateSpline(normalized_grid, component, k=1, ext=1)
-    stretched_grid = normalized_grid / stretching_factor
-    stretched_component = spline.__call__(stretched_grid)
-    return stretched_component
-
+    return np.interp(normalized_grid / stretching_factor, normalized_grid, component, left=0, right=0)
 
 def update_weights_matrix(component_amount, signal_length, stretching_factor_matrix, component_matrix, data_input,
                           moment_amount, weights_matrix, method):
@@ -180,3 +176,41 @@ def get_residual_matrix(component_matrix, weights_matrix, stretching_matrix, dat
                                                                                  component_matrix[:, k])
         residual_matrx[:, m] = residual
     return residual_matrx
+
+
+def reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix, component_amount,
+                     moment_amount, signal_length):
+    """
+
+    Parameters
+    ----------
+    stretching_factor_matrix
+    component_matrix
+    weight_matrix
+    component_amount
+    moment_amount
+
+    Returns
+    -------
+
+    """
+    stretched_component_series = []
+    for moment in range(moment_amount):
+        for component in range(component_amount):
+            stretched_component = get_stretched_component(stretching_factor_matrix[component, moment],
+                                                          component_matrix[:, component], signal_length)
+            stretched_component_series.append(stretched_component)
+    stretched_component_series = np.column_stack(stretched_component_series)
+    print(stretched_component_series)
+    reconstructed_data = []
+    moment = 0
+    for block in range(0, moment_amount, component_amount):
+        component_block = stretched_component_series[:, block:block + component_amount]
+        print(component_block)
+        for component in range(component_amount):
+            component_block[:, component] = component_block[:, component] * weight_matrix[component, moment]
+            reconstructed_data.append(np.sum(component_block, axis=0))
+        print(component_block)
+        print(reconstructed_data)
+        moment += 1
+    return np.column_stack(reconstructed_data)
