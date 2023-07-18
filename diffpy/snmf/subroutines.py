@@ -214,11 +214,15 @@ def reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix, 
     return np.column_stack(reconstructed_data)
 
 
-def funregu(signal_length, moment_amout, component_amount, data_input):
-    AX = reconstruct_data()
-    RA = np.reshape(np.sum(np.reshape(AX, (signal_length * moment_amout, component_amount)), axis=1),
-                    (signal_length, moment_amout)) - data_input
-    return objective_function()
+def funregu(stretching_factor_matrix, weight_matrix, signal_length, moment_amout, component_matrix, component_amount,
+            data_input, smoothness, sparsity, smoothness_term):
+    reconstructed_data = reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix)
+    reconstructed_data_reshaped = np.reshape(
+        np.sum(np.reshape(reconstructed_data, (signal_length * moment_amout, component_amount)), axis=1),
+        (signal_length, moment_amout)) - data_input
+    fun = objective_function(reconstructed_data, stretching_factor_matrix, smoothness, smoothness_term,
+                              component_matrix, sparsity)
+    scipy.optimize.minimize()
 
 
 def update_stretching_matrix():
