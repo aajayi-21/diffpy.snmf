@@ -226,4 +226,5 @@ def funregu(stretching_factor_matrix, weight_matrix, signal_length, moment_amout
 
 
 def update_stretching_matrix():
-    scipy.optimize.minimize()
+    reconstruct_data = reconstruct_data(stretching_factor_matrix, component_matrix,weight_matrix)
+    reshaped =
