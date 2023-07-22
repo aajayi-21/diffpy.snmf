@@ -2,6 +2,7 @@ import numpy as np
 import scipy
 from diffpy.snmf.optimizers import get_weights
 from diffpy.snmf.factorizers import lsqnonneg
+import numdifftools
 
 
 # import scipy.interpolate
@@ -56,10 +57,12 @@ def objective_function(residual_matrix, stretching_factor_matrix, smoothness, sm
 
 def get_stretched_component(stretching_factor, component, signal_length):
     """Applies a stretching factor to a component signal.
+
     Computes a stretched signal and reinterpolates it onto the original grid of points. Uses a normalized grid of evenly
     spaced integers counting from 0 to signal_length (exclusive) to approximate values in between grid nodes. Once this
     grid is stretched, values at grid nodes past the unstretched signal's domain are set to zero. Returns the
     approximate values of x(r/a) from x(r) where x is a component signal.
+
     Parameters
     ----------
     stretching_factor: float
@@ -68,15 +71,32 @@ def get_stretched_component(stretching_factor, component, signal_length):
       The calculated component signal without stretching or weighting. Has length N, the length of the signal.
     signal_length: int
       The length of the component signal.
+
     Returns
     -------
-    1d array of floats
+    tuple of 1d array of floats
       The calculated component signal with stretching factors applied. Has length N, the length of the unstretched
-      component signal.
+      component signal. Also returns the gradient and hessian of the stretching transformation.
+
     """
     component = np.asarray(component)
     normalized_grid = np.arange(signal_length)
-    return np.interp(normalized_grid / stretching_factor, normalized_grid, component, left=0, right=0)
+
+    def stretched_component_func(stretching_factor):
+        return np.interp(normalized_grid / stretching_factor, normalized_grid, component, left=0, right=0)
+
+    stretched_component = stretched_component_func(stretching_factor)
+
+    derivative_func = numdifftools.Derivative(stretched_component_func)
+    second_derivative_func = numdifftools.Derivative(derivative_func)
+
+    stretched_component_gra = derivative_func(stretching_factor)
+    stretched_component_gra = np.asarray(stretched_component_gra)
+
+    stretched_component_hess = second_derivative_func(stretching_factor)
+    stretched_component_hess = np.asarray(stretched_component_hess)
+
+    return stretched_component, stretched_component_gra, stretched_component_hess
 
 
 def update_weights_matrix(component_amount, signal_length, stretching_factor_matrix, component_matrix, data_input,
@@ -214,17 +234,36 @@ def reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix, 
     return np.column_stack(reconstructed_data)
 
 
-def funregu(stretching_factor_matrix, weight_matrix, signal_length, moment_amout, component_matrix, component_amount,
-            data_input, smoothness, sparsity, smoothness_term):
-    reconstructed_data = reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix)
-    reconstructed_data_reshaped = np.reshape(
-        np.sum(np.reshape(reconstructed_data, (signal_length * moment_amout, component_amount)), axis=1),
-        (signal_length, moment_amout)) - data_input
-    fun = objective_function(reconstructed_data, stretching_factor_matrix, smoothness, smoothness_term,
-                              component_matrix, sparsity)
-    scipy.optimize.minimize()
+def update_stretching_matrix(stretching_factor_matrix, weight_matrix, component_matrix, data_input, moment_amount,
+                             component_amount, signal_length, smoothness, sparsity, smoothness_term):
+    """
+    Parameters
+    ----------
+    stretching_factor_matrix
+    weight_matrix
+    component_matrix
+    data_input
+    moment_amount
+    component_amount
+    signal_length
+    smoothness
+    sparsity
+    smoothness_term
+    Returns
+    -------
+    """
+    def fun(stretching_factor_matrix):
+        reconstructed_data = reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix, component_amount, moment_amount, signal_length)
+        reconstructed_data_fun = reconstructed_data[0].reshape(-1, moment_amount, component_amount).sum(axis=1)
+        residual = reconstructed_data_fun - data_input
+        fun = objective_function(residual, stretching_factor_matrix,smoothness, smoothness_term, component_matrix, sparsity)
+        gra = np.empty_like(residual)
+        for moment in range(moment_amount):
+            for m_block in range(0, moment_amount * component_amount, component_amount):
+                gra[:, moment] = np.dot(residual[:, moment],
+                                        reconstructed_data[1][:, m_block:m_block + component_amount])
+
+        gra += smoothness * stretching_factor_matrix @ smoothness_term.T @ smoothness_term
+        return 1
 
 
-def update_stretching_matrix():
-    reconstruct_data = reconstruct_data(stretching_factor_matrix, component_matrix,weight_matrix)
-    reshaped =
