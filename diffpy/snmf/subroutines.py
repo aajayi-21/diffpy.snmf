@@ -260,6 +260,7 @@ def update_stretching_matrix(stretching_factor_matrix, weight_matrix, component_
         residual = reconstructed_data_fun - data_input
         fun = objective_function(residual, stretching_factor_matrix, smoothness, smoothness_term, component_matrix,
                                  sparsity)
+
         gra = np.empty_like(residual)
         for moment in range(moment_amount):
             for m_block in range(0, moment_amount * component_amount, component_amount):
