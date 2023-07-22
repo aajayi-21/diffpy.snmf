@@ -252,11 +252,14 @@ def update_stretching_matrix(stretching_factor_matrix, weight_matrix, component_
     Returns
     -------
     """
+
     def fun(stretching_factor_matrix):
-        reconstructed_data = reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix, component_amount, moment_amount, signal_length)
+        reconstructed_data = reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix,
+                                              component_amount, moment_amount, signal_length)
         reconstructed_data_fun = reconstructed_data[0].reshape(-1, moment_amount, component_amount).sum(axis=1)
         residual = reconstructed_data_fun - data_input
-        fun = objective_function(residual, stretching_factor_matrix,smoothness, smoothness_term, component_matrix, sparsity)
+        fun = objective_function(residual, stretching_factor_matrix, smoothness, smoothness_term, component_matrix,
+                                 sparsity)
         gra = np.empty_like(residual)
         for moment in range(moment_amount):
             for m_block in range(0, moment_amount * component_amount, component_amount):
@@ -266,4 +269,8 @@ def update_stretching_matrix(stretching_factor_matrix, weight_matrix, component_
         gra += smoothness * stretching_factor_matrix @ smoothness_term.T @ smoothness_term
         return 1
 
+    fun = lambda stretching_factor_matrix: fun(stretching_factor_matrix)[0]
+    gra = lambda stretching_factor_matrix: fun(stretching_factor_matrix)[1]
+    hess = lambda stretching_factor_matrix: fun(stretching_factor_matrix)[2]
 
+    return scipy.optimize.minimize(fun, stretching_factor_matrix, jac=gra, hess=hess, bounds=(.1 * np.ones()), )
