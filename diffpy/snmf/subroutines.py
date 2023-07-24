@@ -234,6 +234,9 @@ def reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix, 
     return np.column_stack(reconstructed_data)
 
 
+def funregu(stretching_factor_matrix):
+
+
 def update_stretching_matrix(stretching_factor_matrix, weight_matrix, component_matrix, data_input, moment_amount,
                              component_amount, signal_length, smoothness, sparsity, smoothness_term):
     """
@@ -253,7 +256,18 @@ def update_stretching_matrix(stretching_factor_matrix, weight_matrix, component_
     -------
     """
 
-    def fun(stretching_factor_matrix):
+    def objective_value_gra(stretching_factor_matrix):
+        """Calculates the objective function value and gradient
+
+        Parameters
+        ----------
+        stretching_factor_matrix: 2d array like
+
+
+        Returns
+        -------
+
+        """
         reconstructed_data = reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix,
                                               component_amount, moment_amount, signal_length)
         reconstructed_data_fun = reconstructed_data[0].reshape(-1, moment_amount, component_amount).sum(axis=1)
@@ -261,17 +275,26 @@ def update_stretching_matrix(stretching_factor_matrix, weight_matrix, component_
         fun = objective_function(residual, stretching_factor_matrix, smoothness, smoothness_term, component_matrix,
                                  sparsity)
 
-        gra = np.empty_like(residual)
+        gra = np.zeros_like(residual)
         for moment in range(moment_amount):
             for m_block in range(0, moment_amount * component_amount, component_amount):
                 gra[:, moment] = np.dot(residual[:, moment],
                                         reconstructed_data[1][:, m_block:m_block + component_amount])
-
         gra += smoothness * stretching_factor_matrix @ smoothness_term.T @ smoothness_term
+        return fun, gra[:]
+
+    def objective_hessian(stretching_factor_matrx):
+        """Calculates the hessian of the objective function.
+
+        Parameters
+        ----------
+        stretching_factor_matrx: 2d array like
+
+        Returns
+        -------
+
+        """
         return 1
 
-    fun = lambda stretching_factor_matrix: fun(stretching_factor_matrix)[0]
-    gra = lambda stretching_factor_matrix: fun(stretching_factor_matrix)[1]
-    hess = lambda stretching_factor_matrix: fun(stretching_factor_matrix)[2]
-
-    return scipy.optimize.minimize(fun, stretching_factor_matrix, jac=gra, hess=hess, bounds=(.1 * np.ones()), )
+    return np.reshape(scipy.optimize.minimize(objective_value_gra, stretching_factor_matrix[:], jac=True, hess=objective_hessian,
+                                   bounds=(np.ones((component_amount, moment_amount)), None)), component_amount,moment_amount)
