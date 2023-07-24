@@ -134,18 +134,22 @@ def update_weights_matrix(component_amount, signal_length, stretching_factor_mat
     component_matrix = np.asarray(component_matrix)
     data_input = np.asarray(data_input)
     weights_matrix = np.asarray(weights_matrix)
-    weight = np.zeros(component_amount)
+    stretched_components = np.empty((signal_length, component_amount, moment_amount))
+
+    # Compute stretched components
+    for n in range(component_amount):
+        for i in range(moment_amount):
+            stretched_components[:, n, i] = get_stretched_component(stretching_factor_matrix[n, i],
+                                                                    component_matrix[:, n],
+                                                                    signal_length)[0]
+
     for i in range(moment_amount):
-        stretched_components = np.zeros((signal_length, component_amount))
-        for n in range(component_amount):
-            stretched_components[:, n] = get_stretched_component(stretching_factor_matrix[n, i], component_matrix[:, n],
-                                                                 signal_length)[0]
         if method == 'align':
-            weight = lsqnonneg(stretched_components[0:signal_length, :], data_input[0:signal_length, i])
+            weight = lsqnonneg(stretched_components[:, :, i], data_input[:, i])
         else:
             weight = get_weights(
-                stretched_components[0:signal_length, :].T @ stretched_components[0:signal_length, :],
-                -1 * stretched_components[0:signal_length, :].T @ data_input[0:signal_length, i],
+                stretched_components[:, :, i].T @ stretched_components[:, :, i],
+                -1 * stretched_components[:, :, i].T @ data_input[:, i],
                 0, 1)
         weights_matrix[:, i] = weight
     return weights_matrix
@@ -200,15 +204,23 @@ def get_residual_matrix(component_matrix, weights_matrix, stretching_matrix, dat
     weights_matrix = np.asarray(weights_matrix)
     stretching_matrix = np.asarray(stretching_matrix)
     data_input = np.asarray(data_input)
-    residual_matrx = -1 * data_input
-    for m in range(moment_amount):
-        residual = residual_matrx[:, m]
-        for k in range(component_amount):
-            residual = residual + weights_matrix[k, m] * get_stretched_component(stretching_matrix[k, m],
-                                                                                 component_matrix[:, k], signal_length)[
-                0]
-        residual_matrx[:, m] = residual
-    return residual_matrx
+
+    stretched_components = np.empty((signal_length, moment_amount, component_amount))
+
+    # Compute stretched components
+    for k in range(component_amount):
+        for m in range(moment_amount):
+            stretched_components[:, m, k] = get_stretched_component(stretching_matrix[k, m],
+                                                                    component_matrix[:, k],
+                                                                    signal_length)[0]
+
+    # Transpose stretched_components for easy multiplication with weights_matrix
+    stretched_components = np.transpose(stretched_components, (0, 2, 1))
+
+    # Calculate residuals
+    residuals = np.einsum('ijk,jk->ik', stretched_components, weights_matrix) - data_input
+
+    return residuals
 
 
 def reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix, component_amount,
