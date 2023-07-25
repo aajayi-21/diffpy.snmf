@@ -290,7 +290,7 @@ def reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix, 
 
 def stretching_objective(stretching_factor_matrix, weight_matrix, component_matrix, data_input, number_of_moments,
                          number_of_components, signal_length, smoothness, sparsity, smoothness_term):
-    stretching_factor_matrix = np.asarray(stretching_factor_matrix)
+    stretching_factor_matrix = np.asarray(stretching_factor_matrix).reshape(number_of_components, number_of_moments)
     weight_matrix = np.asarray(weight_matrix)
     component_matrix = np.asarray(component_matrix)
     data_input = np.asarray(data_input)
@@ -311,4 +311,12 @@ def stretching_objective(stretching_factor_matrix, weight_matrix, component_matr
     gra = np.einsum('ij,ijk->ij', residual, reconstructed_data_gra[:, indexed_blocks])
     gra += smoothness * stretching_factor_matrix @ smoothness_term.T @ smoothness_term
 
-    return (fun, gra.flatten())
+    return fun, gra.flatten()
+
+
+def update_stretching_matrix(stretching_factor_matrix, weight_matrix, component_matrix, data_input, number_of_moments,
+                             number_of_components, signal_length, smoothness, sparsity, smoothness_term):
+    return scipy.optimize.minimize(stretching_objective, stretching_factor_matrix.flatten(),
+                                   args=(weight_matrix, component_matrix, data_input, number_of_moments,
+                                         number_of_components, signal_length, smoothness, sparsity, smoothness_term),
+                                   jac=True)
