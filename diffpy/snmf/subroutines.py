@@ -1,6 +1,7 @@
 import numpy as np
 from diffpy.snmf.optimizers import get_weights
 from diffpy.snmf.factorizers import lsqnonneg
+import scipy
 import numdifftools
 
 
@@ -287,66 +288,27 @@ def reconstruct_data(stretching_factor_matrix, component_matrix, weight_matrix, 
         reconstructed_data_hess)
 
 
-def update_stretching_matrix(stretching_factor_matrix, weight_matrix, component_matrix, data_input, number_of_moments,
-                             number_of_components, signal_length, smoothness, sparsity, smoothness_term):
-    """Updates the stretching factor matrix
+def stretching_objective(stretching_factor_matrix, weight_matrix, component_matrix, data_input, number_of_moments,
+                         number_of_components, signal_length, smoothness, sparsity, smoothness_term):
+    stretching_factor_matrix = np.asarray(stretching_factor_matrix)
+    weight_matrix = np.asarray(weight_matrix)
+    component_matrix = np.asarray(component_matrix)
+    data_input = np.asarray(data_input)
+    reconstructed_data, reconstructed_data_gra, reconstructed_data_hess = reconstruct_data(stretching_factor_matrix,
+                                                                                           component_matrix,
+                                                                                           weight_matrix,
+                                                                                           number_of_components,
+                                                                                           number_of_moments,
+                                                                                           signal_length)
+    reconstructed_data = reconstructed_data.reshape(signal_length, -1, number_of_components)
+    reconstructed_data = np.sum(reconstructed_data, axis=2)
+    residual = reconstructed_data - data_input
+    fun = objective_function(residual, stretching_factor_matrix, smoothness, smoothness_term, component_matrix,
+                             sparsity)
 
-    Parameters
-    ----------
-    stretching_factor_matrix: 2d array like
-      The current stretching factor matrix
+    m_blocks = np.arange(0, number_of_moments * number_of_components, number_of_components)
+    indexed_blocks = m_blocks[:, None] + np.arange(number_of_components)
+    gra = np.einsum('ij,ijk->ij', residual, reconstructed_data_gra[:, indexed_blocks])
+    gra += smoothness * stretching_factor_matrix @ smoothness_term.T @ smoothness_term
 
-    weight_matrix: 2d array like
-      The matrix containing the weightings of the component signals
-
-    component_matrix: 2d array like
-      The matrix containing the calculated component signals
-
-    data_input: 2d array like
-      The matrix containing the experimental series of signals.
-
-    number_of_moments: int
-      The number of signals in 'data_input'
-    number_of_components: int
-      The number of components to derive from 'data_input'
-
-    signal_length: int
-      The length of the signals in 'data_input'
-    smoothness: float
-      The p
-    sparsity:
-
-    smoothness_term: 2d array like
-      The sparse matrix representing the coefficients of the
-
-    Returns
-    -------
-
-    """
-
-    def obtain_value_gra_hess(stretching_factor_matrix):
-        """Obtains the value, gradient, and hessian of the objective function
-
-        Parameters
-        ----------
-        stretching_factor_matrix
-
-        Returns
-        -------
-
-        """
-        reconstructed_data, reconstructed_data_gra, reconstructed_data_hess = reconstruct_data(stretching_factor_matrix,
-                                                                                               component_matrix,
-                                                                                               weight_matrix,
-                                                                                               number_of_components,
-                                                                                               number_of_moments,
-                                                                                               signal_length)
-        reconstructed_data = reconstructed_data.reshape(-1, number_of_moments, number_of_components).sum(axis=1)
-        residual = reconstructed_data - data_input
-
-        gra = np.zeros_like(residual)
-        for moment in range(number_of_moments):
-            m_blocks = np.arange(0, number_of_moments *  number_of_components, number_of_components)
-            gra[:, moment] = np.einsum('ij,ijk->i', residual[:, moment],
-                                       reconstructed_data[1][:, m_blocks[:, None] + np.arange(number_of_components)])
-        pass
+    return (fun, gra.flatten())

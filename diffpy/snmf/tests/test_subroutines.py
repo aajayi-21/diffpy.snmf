@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from diffpy.snmf.subroutines import objective_function, get_stretched_component, reconstruct_data, get_residual_matrix, \
-    update_weights_matrix
+    update_weights_matrix, stretching_objective
 
 to = [
     ([[[1, 2], [3, 4]], [[5, 6], [7, 8]], 1e11, [[1, 2], [3, 4]], [[1, 2], [3, 4]], 1], 2.574e14),
@@ -135,3 +135,21 @@ def test_reconstruct_data(trd):
     expected = trd[1]
     np.testing.assert_allclose(actual, expected, rtol=1e-03)
 
+
+tusm = [([[[.9, .7, .75], [.9, .7, .75]], [[.5, .5, .7], [.4, .6, .3]], [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]],
+          [[2, 4, 4], [6, 8, 8], [10, 12, 12], [14, 16, 16], [18, 20, 20]], 3, 2, 5, 1e11, 0,
+          np.array([[0, 0, 0]])],
+         (377.340711, [-255.30864, -211.355, -230.474622, -284.8513])),
+        ([[[.5, .5]], [[.4, .6]], [[0], [1]], [[3, 4], [1, 2]], 2, 1, 2, 1e11, 0, np.array([[0, 0]])],
+         (15, np.array([0, 0, 0, 0]))),
+
+        ]
+
+
+@pytest.mark.parametrize('tusm', tusm)
+def test_stretching_objective(tusm):
+    actual = stretching_objective(tusm[0][0], tusm[0][1], tusm[0][2], tusm[0][3], tusm[0][4], tusm[0][5], tusm[0][6],
+                                  tusm[0][7], tusm[0][8], tusm[0][9])
+    expected = tusm[1]
+    np.testing.assert_almost_equal(actual[0], expected[0], decimal=5)
+    np.testing.assert_array_almost_equal(actual[1], expected[1], decimal=5)
