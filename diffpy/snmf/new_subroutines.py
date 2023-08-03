@@ -309,5 +309,8 @@ def update_stretching_factors(components, data_input, stretching_factor_matrix, 
                                    bounds=bounds)
 
 
-def update_components(stretc):
-    pass
+def component_gradient(stretching_factor_matrix, residual_matrix, weight_matrix, number_of_components, number_of_signals):
+    flattened_stretching_factor_matrix = stretching_factor_matrix.flatten()
+    stretched_grid = np.arange(number_of_components * number_of_signals) / flattened_stretching_factor_matrix
+    flattened_weight_matrix = weight_matrix.flatten()
+
